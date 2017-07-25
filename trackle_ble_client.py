@@ -2,64 +2,60 @@ import struct
 import sys
 
 import msgpack
+import time
 from bluepy.btle import UUID, Peripheral, DefaultDelegate, Scanner
 
+from StringIO import StringIO
+mydata = StringIO()
 
-rx_data = [] # = ""
-process_data = 0
+def unpack_msgpack():
+    print "unpack"
+    thestr =  StringIO(mydata.getvalue())
+    # print thestr[]
+    unpacker = msgpack.Unpacker(mydata)
+    print unpacker
+    for val in unpacker:
+        print val
+        print len(val)
 
-def handleMSGPACK():
-    print "process_data"
-    # newString = ''.join(rx_data)
-    # print newString
-    unpacker = msgpack.Unpacker(rx_data)
-    for unpacked in unpacker:
-        print unpacked
+    print "unpacked"
 
-
+# readData = 0
 class MyDelegate(DefaultDelegate):
-    #Constructor (run once on startup)  
+    readData = False
+    #Constructor (run once on startup)
     def __init__(self, params):
         DefaultDelegate.__init__(self)
-      
-    #func is caled on notifications
 
-    # process the received data here
     def handleNotification(self, cHandle, data):
         # print ("Notification from Handle: 0x" + format(cHandle,'02X') + " Value: "+ format(ord(data[0])))
-        # for i in data
-        if "NONE\r\n" in str(data):
-            # print "none man"
-            # for i in data:
-            #     rx_data += str(i)
-            process_data = True
-        # elif "start\r\n" in str(data):
+        print data
+        if 'No more data' in data:
+            # x = ''
+            # y = x.replace('NONE\r\n','')
+            # for x in data:
+            # mydata.write(y)
 
-            # print "start man " + str(data)
+            print "No data..."
+            self.readData = True
+            # unpack_msgpack()
+            # print ""
 
         else:
-            process_data = True
-            # print data
-            rx_data.append(str(data)) # += str(data)
-            # print rx_data
+            # self.readData = False
+            mydata.write(data)
 
-newData = ""
-def joinData():
-    newData = ''.join(rx_data)
-    # newData = tempdata
-    rx_data[:] = []
-    # newData.join(rx_data.pop(0))
-    # nelems = unpacker.read_map_header()
+    def getTxflag(self):
+        return self.readData
 
-    # unpacker = msgpack.Unpacker(newData)
-    # for unpacked in unpacker:
-    #     print unpacked
-    print newData
+
+
+
 
 # Trackle Service and Char UUIDs
-UART_service_uuid = UUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
+UART_service_uuid    = UUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
 UART_rx_char_uuid    = UUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
-UART_tx_char_uuid    = UUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
+UART_tx_char_uuid    = UUID("6e400002-b5a3-f393-e0a9-e50e24dcca9e")
 
 # Init the scanner
 scanner = Scanner()
@@ -80,12 +76,14 @@ deviceIndex = 1
 # if 0 > deviceIndex > 10:
 
 print deviceIndex
-print scanDeviceList[deviceIndex]
+# print scanDeviceList[deviceIndex]
 
-trackleBLE = "e0:87:40:09:11:ea"
+trackleBLE = "c2:bf:e4:96:9e:4b"
 # p = Peripheral(scanDeviceList[deviceIndex], "random")
 p = Peripheral(trackleBLE, "random")
-p.setDelegate( MyDelegate(p) )
+pq = MyDelegate(p)
+p.setDelegate(pq)
+# p.setDelegate( MyDelegate(p))
 
 #Get ButtonService
 ButtonService=p.getServiceByUUID(UART_service_uuid)
@@ -112,18 +110,14 @@ while True:
         # handleNotification() was called
         continue
 
-    # print process_data
-    if process_data:
-        # print "process_data"
-        # newString = ''.join(rx_data)
-        # print newString
-        unpacker = msgpack.Unpacker(rx_data)
-        for unpacked in unpacker:
-            print unpacked
-        process_data = False
+    if pq.getTxflag() is True:
+        time.sleep(0.5)
+        print "readData"
+        pq.readData = False
+        unpack_msgpack()
     else:
-        # print process_data
-        joinData()
-        # print rx_data
-        # print "Waiting... Waited more than one sec for notification"
+        print "Waiting... Waited more than one sec for notification"
+
+    # print readData
+        # print mydata.getvaue()
         # Perhaps do something else here
