@@ -1,17 +1,15 @@
 # !/usr/bin/env python
 
 import struct
-import sys
-
-import msgpack
 import time
-from bluepy.btle import UUID, Peripheral, DefaultDelegate, Scanner
-
-from StringIO import StringIO
 import socket
+import msgpack
+import requests
+from bluepy.btle import UUID, Peripheral, DefaultDelegate, Scanner
+from StringIO    import StringIO
 
-TCP_IP = '127.0.0.1'
-TCP_PORT = 5005
+TCP_IP = 'http://192.168.150.103:8080/api/avatarService/v1/device/update/mpack'
+TCP_PORT = 8080
 BUFFER_SIZE = 1024
 MESSAGE = "Hello, World!"
 
@@ -20,18 +18,35 @@ mydata = StringIO()
 def unpack_msgpack():
     print "Unpack Temperature Values..."
     thestr =  StringIO(mydata.getvalue())
+    # print thestr
+    # print "hello"
+    # hexstr = ':'.join(x.encode('hex') for x in thestr)
+    # print hexstr
+
     unpacker = msgpack.Unpacker(thestr)
 
     for val in unpacker:
         print val
     print "All the sensor values unpacked..."
+
+
 def send_data_to_backend():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_IP, TCP_PORT))
-    s.send(mydata.getvalue())
-    data = s.recv(BUFFER_SIZE)
-    s.close()
-    print "received data:", data
+
+    # post_data = {'username': 'joeb', 'password': 'foobar'}
+    # POST some form-encoded data:
+    thestr =  StringIO(mydata.getvalue())
+    post_response = requests.post(url=TCP_IP, data=thestr)
+    print post_response
+    # get_response = requests.get(url=TCP_IP)
+    # print get_response
+    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # # s.connect((TCP_IP, TCP_PORT))
+    # s.connect(TCP_IP)
+    # s.send(mydata.getvalue())
+    # data = s.recv(BUFFER_SIZE)
+    # s.close()
+    # print "received data:", data
+    # mydata.close()
 
 class MyDelegate(DefaultDelegate):
     readData = False
@@ -124,6 +139,9 @@ while True:
         print "Read the Trackle data..."
         pq.readData = False
         unpack_msgpack()
+        send_data_to_backend()
     else:
         print '...'
+
+    # send_data_to_backend()
         # print "Waiting... Waited more than one sec for notification"
