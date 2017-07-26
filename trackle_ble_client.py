@@ -11,7 +11,7 @@ from StringIO    import StringIO
 
 mydata = StringIO()
 
-HTTP_POST_URL = 'http://192.168.150.103:8080/api/avatarService/v1/device/update/mpack'
+HTTP_POST_URL = 'http://ubirch.api.trackle.dev.ubirch.com:8080/api/avatarService/v1/device/update/mpack'
 
 def unpack_msgpack():
     """
@@ -34,7 +34,7 @@ def send_data_to_backend():
     thestr =  StringIO(mydata.getvalue())
     post_response = requests.post(url=HTTP_POST_URL, data=thestr)
     print "HTTP Response:" + str(post_response)
-    mydata.close()
+    # mydata.close()
 
 
 class MyDelegate(DefaultDelegate):
