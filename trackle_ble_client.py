@@ -1,28 +1,25 @@
 # !/usr/bin/env python
 
+# Author: Niranjan Rao
+
 import struct
 import time
-import socket
 import msgpack
 import requests
 from bluepy.btle import UUID, Peripheral, DefaultDelegate, Scanner
 from StringIO    import StringIO
 
-TCP_IP = 'http://192.168.150.103:8080/api/avatarService/v1/device/update/mpack'
-TCP_PORT = 8080
-BUFFER_SIZE = 1024
-MESSAGE = "Hello, World!"
-
 mydata = StringIO()
 
-def unpack_msgpack():
-    print "Unpack Temperature Values..."
-    thestr =  StringIO(mydata.getvalue())
-    # print thestr
-    # print "hello"
-    # hexstr = ':'.join(x.encode('hex') for x in thestr)
-    # print hexstr
+HTTP_POST_URL = 'http://192.168.150.103:8080/api/avatarService/v1/device/update/mpack'
 
+def unpack_msgpack():
+    """
+    Unpack the msgpack data and print it
+    """
+    print "Unpack Temperature Values..."
+
+    thestr =  StringIO(mydata.getvalue())
     unpacker = msgpack.Unpacker(thestr)
 
     for val in unpacker:
@@ -31,22 +28,14 @@ def unpack_msgpack():
 
 
 def send_data_to_backend():
-
-    # post_data = {'username': 'joeb', 'password': 'foobar'}
-    # POST some form-encoded data:
+    """
+    Sends the msgpack binary data to the backend
+    """
     thestr =  StringIO(mydata.getvalue())
-    post_response = requests.post(url=TCP_IP, data=thestr)
-    print post_response
-    # get_response = requests.get(url=TCP_IP)
-    # print get_response
-    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # # s.connect((TCP_IP, TCP_PORT))
-    # s.connect(TCP_IP)
-    # s.send(mydata.getvalue())
-    # data = s.recv(BUFFER_SIZE)
-    # s.close()
-    # print "received data:", data
-    # mydata.close()
+    post_response = requests.post(url=HTTP_POST_URL, data=thestr)
+    print "HTTP Response:" + str(post_response)
+    mydata.close()
+
 
 class MyDelegate(DefaultDelegate):
     readData = False
@@ -69,15 +58,24 @@ class MyDelegate(DefaultDelegate):
 
         elif "\r\n\r\n" in data:
             print'newline .....'
+
+            lfhex = data
+            newlfhex = ':'.join(x.encode('hex') for x in lfhex)
+            print newlfhex
+
             newData = data[:-4]
             mydata.write(newData)
-            print newData
+
+            lfhex = newData
+            newlfhex = ':'.join(x.encode('hex') for x in lfhex)
+            print newlfhex
 
         else:
             mydata.write(data)
 
     def getTxflag(self):
         return self.readData
+
 
 # ++++++++++++++++++++++++++++++ BLE START ++++++++++++++++++++++++++++
 # Trackle Service and Char UUIDs
@@ -105,33 +103,30 @@ deviceIndex = int(input("Input the device Index:"))
 # print deviceIndex
 print scanDeviceList[deviceIndex]
 
-# trackleBLE = "c2:bf:e4:96:9e:4b"
-# trackleBLE  = "e0:87:40:09:11:ea"
 p = Peripheral(scanDeviceList[deviceIndex], "random")
-# p = Peripheral(trackleBLE, "random")
 pq = MyDelegate(p)
 p.setDelegate(pq)
-# p.setDelegate( MyDelegate(p))
 
-#Get ButtonService
-ButtonService=p.getServiceByUUID(UART_service_uuid)
-# Get The Button-Characteristics
-ButtonC=ButtonService.getCharacteristics(UART_rx_char_uuid)[0]
-#Get The handle tf the  Button-Characteristics
-hButtonC=ButtonC.getHandle()
-# Search and get Get The Button-Characteristics "property" (UUID-0x2902 CCC-Client Characteristic Configuration))
-#  wich is located in a handle in the range defined by the boundries of the ButtonService
-for desriptor in p.getDescriptors(hButtonC):  # The handle range should be read from the services
+#Get UART Service
+UARTService=p.getServiceByUUID(UART_service_uuid)
+# Get The UART-Characteristics
+UARTC=UARTService.getCharacteristics(UART_rx_char_uuid)[0]
+#Get The handle the  UART-Characteristics
+hUARTC=UARTC.getHandle()
+# Search and get Get The UART-Characteristics "property" (UUID-0x2902 CCC-Client Characteristic Configuration))
+#  wich is located in a handle in the range defined by the boundries of the UARTService
+for desriptor in p.getDescriptors(hUARTC):  # The handle range should be read from the services
    if (desriptor.uuid == 0x2902):                   #      but is not done due to a Bluez/BluePy bug :(     
         print ("Trackle UART Client Characteristic Configuration found at handle 0x"+ format(desriptor.handle,"02X"))
-        hButtonCCC=desriptor.handle
+        hUARTCCC=desriptor.handle
  
 # Turn notifications on by setting bit0 in the CCC more info on:
 # https://developer.bluetooth.org/gatt/descriptors/Pages/DescriptorViewer.aspx?u=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml    
-p.writeCharacteristic(hButtonCCC, struct.pack('<bb', 0x01, 0x00))
+p.writeCharacteristic(hUARTCCC, struct.pack('<bb', 0x01, 0x00))
 print "Notification is turned on for Trackle sensor"
 
 # ++++++++++++++++++++++++++++++ BLE STOP  ++++++++++++++++++++++++++++
+
 
 while True:
     if p.waitForNotifications(1.0):
@@ -146,6 +141,3 @@ while True:
         send_data_to_backend()
     else:
         print '...'
-
-    # send_data_to_backend()
-        # print "Waiting... Waited more than one sec for notification"
