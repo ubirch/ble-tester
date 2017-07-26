@@ -56,15 +56,19 @@ class MyDelegate(DefaultDelegate):
 
     def handleNotification(self, cHandle, data):
         # print ("Notification from Handle: 0x" + format(cHandle,'02X') + " Value: "+ format(ord(data[0])))
-        print data
+        hexstr = data
+        newhexstr = ':'.join(x.encode('hex') for x in hexstr)
+        print newhexstr
+
         if 'No more data' in data:
-            print "No data tp send..."
+            print "No data t0 send..."
             self.readData = True
 
-        if 'OK let me sleep...' in data:
+        elif 'OK let me sleep...' in data:
             print "Trackle is going to sleep..."
 
         elif "\r\n\r\n" in data:
+            print'newline .....'
             newData = data[:-4]
             mydata.write(newData)
             print newData
