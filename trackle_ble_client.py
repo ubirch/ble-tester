@@ -20,11 +20,16 @@ def unpack_msgpack():
     print "Unpack Temperature Values..."
 
     thestr =  StringIO(mydata.getvalue())
+
     unpacker = msgpack.Unpacker(thestr)
 
     for val in unpacker:
         print val
     print "All the sensor values unpacked..."
+
+    hexstr = StringIO(mydata.getvalue())
+    newhexstr = ':'.join(x.encode('hex') for x in hexstr)
+    print newhexstr
 
 
 def send_data_to_backend():
@@ -34,7 +39,7 @@ def send_data_to_backend():
     thestr =  StringIO(mydata.getvalue())
     post_response = requests.post(url=HTTP_POST_URL, data=thestr)
     print "HTTP Response:" + str(post_response)
-    # mydata.close()
+    mydata.truncate(0)
 
 
 class MyDelegate(DefaultDelegate):
@@ -61,14 +66,15 @@ class MyDelegate(DefaultDelegate):
 
             lfhex = data
             newlfhex = ':'.join(x.encode('hex') for x in lfhex)
-            print newlfhex
+            # print newlfhex
 
             newData = data[:-4]
             mydata.write(newData)
 
             lfhex = newData
             newlfhex = ':'.join(x.encode('hex') for x in lfhex)
-            print newlfhex
+            # print newlfhex
+            self.readData = True
 
         else:
             mydata.write(data)
