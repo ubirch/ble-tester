@@ -11,7 +11,8 @@ from StringIO    import StringIO
 
 mydata = StringIO()
 
-HTTP_POST_URL = 'http://ubirch.api.trackle.dev.ubirch.com:8080/api/avatarService/v1/device/update/mpack'
+# HTTP_POST_URL = 'http://ubirch.api.trackle.dev.ubirch.com:8080/api/avatarService/v1/device/update/mpack'
+HTTP_POST_URL = 'http://key.dev.ubirch.com:8095/api/keyService/v1/pubkey'
 
 def unpack_msgpack():
     """
@@ -36,7 +37,9 @@ def send_data_to_backend():
     """
     Sends the msgpack binary data to the backend
     """
+    print "sending data to the key serveice..."
     thestr =  StringIO(mydata.getvalue())
+    print mydata.getvalue()
     post_response = requests.post(url=HTTP_POST_URL, data=thestr)
     print "HTTP Response:" + str(post_response)
     mydata.truncate(0)
@@ -51,17 +54,19 @@ class MyDelegate(DefaultDelegate):
     def handleNotification(self, cHandle, data):
         # print ("Notification from Handle: 0x" + format(cHandle,'02X') + " Value: "+ format(ord(data[0])))
         hexstr = data
-        newhexstr = ':'.join(x.encode('hex') for x in hexstr)
-        print newhexstr
+        print hexstr
+        # newhexstr = ':'.join(x.encode('hex') for x in hexstr)
+        # print newhexstr
+        # mydata.write(data)
 
-        if 'No more data' in data:
-            print "No data t0 send..."
-            self.readData = True
+        # if 'No more data' in data:
+        #     print "No data t0 send..."
+            # self.readData = True
 
-        elif 'OK let me sleep...' in data:
-            print "Trackle is going to sleep..."
+        # elif 'OK let me sleep...' in data:
+        #     print "Trackle is going to sleep..."
 
-        elif "\r\n\r\n" in data:
+        if "\r\n\r\n" in data:
             print'newline .....'
 
             lfhex = data
@@ -77,6 +82,7 @@ class MyDelegate(DefaultDelegate):
             self.readData = True
 
         else:
+            self.readData = False
             mydata.write(data)
 
     def getTxflag(self):
@@ -143,7 +149,7 @@ while True:
         time.sleep(0.5)
         print "Read the Trackle data..."
         pq.readData = False
-        unpack_msgpack()
+        # unpack_msgpack()
         send_data_to_backend()
     else:
         print '...'
