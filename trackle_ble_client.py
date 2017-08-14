@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 
 # Author: Niranjan Rao
-
+import json
 import struct
 import time
 import msgpack
@@ -9,10 +9,10 @@ import requests
 from bluepy.btle import UUID, Peripheral, DefaultDelegate, Scanner
 from StringIO    import StringIO
 
-mydata = StringIO()
-
 # HTTP_POST_URL = 'http://ubirch.api.trackle.dev.ubirch.com:8080/api/avatarService/v1/device/update/mpack'
 HTTP_POST_URL = 'http://key.dev.ubirch.com:8095/api/keyService/v1/pubkey'
+
+mydata = StringIO()
 
 def unpack_msgpack():
     """
@@ -32,16 +32,19 @@ def unpack_msgpack():
     newhexstr = ':'.join(x.encode('hex') for x in hexstr)
     print newhexstr
 
-
 def send_data_to_backend():
     """
     Sends the msgpack binary data to the backend
     """
     print "sending data to the key serveice..."
-    thestr =  StringIO(mydata.getvalue())
     print mydata.getvalue()
-    post_response = requests.post(url=HTTP_POST_URL, data=thestr)
-    print "HTTP Response:" + str(post_response)
+
+    vheaders = {'Content-Type': 'application/json'}
+    post_response = requests.post(url=HTTP_POST_URL, data=mydata.getvalue(), headers=vheaders)
+
+    print "HTTP Response:" + str(post_response.content)
+    print post_response.json()
+
     mydata.truncate(0)
 
 
@@ -57,28 +60,16 @@ class MyDelegate(DefaultDelegate):
         print hexstr
         # newhexstr = ':'.join(x.encode('hex') for x in hexstr)
         # print newhexstr
-        # mydata.write(data)
 
-        # if 'No more data' in data:
-        #     print "No data t0 send..."
-            # self.readData = True
+        if "\0\0\0\0\0\0":
+            print "Trackle has no data to send..."
 
-        # elif 'OK let me sleep...' in data:
-        #     print "Trackle is going to sleep..."
-
-        if "\r\n\r\n" in data:
+        elif "\r\n\r\n" in data:
             print'newline .....'
-
-            lfhex = data
-            newlfhex = ':'.join(x.encode('hex') for x in lfhex)
-            # print newlfhex
 
             newData = data[:-4]
             mydata.write(newData)
 
-            lfhex = newData
-            newlfhex = ':'.join(x.encode('hex') for x in lfhex)
-            # print newlfhex
             self.readData = True
 
         else:
@@ -95,6 +86,7 @@ UART_service_uuid    = UUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
 UART_rx_char_uuid    = UUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
 UART_tx_char_uuid    = UUID("6e400002-b5a3-f393-e0a9-e50e24dcca9e")
 
+# """
 # Init the scanner
 scanner = Scanner()
 # Start scan, pass the timeout as scan variable
@@ -109,13 +101,16 @@ for dev in devices:
     for (adtype, desc, value) in dev.getScanData():
         print "  %s = %s" % (desc, value)
 
-# deviceIndex = 1
 deviceIndex = int(input("Input the device Index:"))
 
-# print deviceIndex
+print deviceIndex
 print scanDeviceList[deviceIndex]
-
 p = Peripheral(scanDeviceList[deviceIndex], "random")
+# """
+
+# myTrackle = "e0:87:40:09:11:ea"
+# p = Peripheral(myTrackle, "random")
+
 pq = MyDelegate(p)
 p.setDelegate(pq)
 
@@ -138,7 +133,7 @@ p.writeCharacteristic(hUARTCCC, struct.pack('<bb', 0x01, 0x00))
 print "Notification is turned on for Trackle sensor"
 
 # ++++++++++++++++++++++++++++++ BLE STOP  ++++++++++++++++++++++++++++
-
+# send_data_to_backend()
 
 while True:
     if p.waitForNotifications(1.0):

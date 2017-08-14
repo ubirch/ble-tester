@@ -75,7 +75,7 @@ target/
 
 # celery beat schedule file
 celerybeat-schedule
-
+trackle-msgpack.py
 # SageMath parsed files
 *.sage.py
 
