@@ -61,7 +61,7 @@ class MyDelegate(DefaultDelegate):
         # newhexstr = ':'.join(x.encode('hex') for x in hexstr)
         # print newhexstr
 
-        if "\0\0\0\0\0\0":
+        if "\0\0\0\0\0\0" in data:
             print "Trackle has no data to send..."
 
         elif "\r\n\r\n" in data:
